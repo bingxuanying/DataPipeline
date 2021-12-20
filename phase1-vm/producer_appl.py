@@ -14,26 +14,27 @@
 #    command line consumer (or consumers)
 #
 
-import os   # need this for popen
 import time # for sleep
 from kafka import KafkaProducer  # producer of events
+from yahoo_fin import stock_info as si
+from datetime import datetime
 
 # We can make this more sophisticated/elegant but for now it is just
 # hardcoded to the setup I have on my local VMs
 
 # acquire the producer
 # (you will need to change this to your bootstrap server's IP addr)
-producer = KafkaProducer (bootstrap_servers="129.114.25.80:9092", 
+producer = KafkaProducer (bootstrap_servers="18.212.169.220:9092", 
                                           acks=1)  # wait for leader to write to log
 
 # say we send the contents 100 times after a sleep of 1 sec in between
 for i in range (100):
-    
-    # get the output of the top command
-    process = os.popen ("top -n 1 -b")
 
-    # read the contents that we wish to send as topic content
-    contents = process.read ()
+    appl_stock_price = si.get_live_price("aapl")
+
+    now = datetime.now()
+
+    contents = "AAPL " + str(appl_stock_price) + " at " + now.strftime("%m/%d/%YT%H:%M:%S")
 
     # send the contents under topic utilizations. Note that it expects
     # the contents in bytes so we convert it to bytes.
