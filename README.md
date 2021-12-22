@@ -42,6 +42,8 @@ nano CloudComputingCourse/ScaffoldingCode/Kafka_GettingStarted/consumer.py
 
 sudo apt-get install -y python3-pip
 
-python3 -m pip install kafka-python, boto3, yahoo_fin
+python3 -m pip install kafka-python
+python3 -m pip install boto3
+python3 -m pip install yahoo_fin
 
 python3 CloudComputingCourse/ScaffoldingCode/Kafka_GettingStarted/consumer.py

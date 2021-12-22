@@ -18,6 +18,7 @@ import time # for sleep
 from kafka import KafkaProducer  # producer of events
 from yahoo_fin import stock_info as si
 from datetime import datetime
+import json
 
 # We can make this more sophisticated/elegant but for now it is just
 # hardcoded to the setup I have on my local VMs
@@ -34,7 +35,11 @@ for i in range (100):
 
     now = datetime.now()
 
-    contents = "AMZN " + str(amz_stock_price) + " at " + now.strftime("%m/%d/%YT%H:%M:%S")
+    contents = {
+        "stock_name": "AMZN",
+        "stock_price": str(amz_stock_price),
+        "timestamp": now.strftime("%m/%d/%YT%H:%M:%S")
+    }
 
     # send the contents under topic utilizations. Note that it expects
     # the contents in bytes so we convert it to bytes.
@@ -44,7 +49,7 @@ for i in range (100):
     # You will need to modify it to send a JSON structure, say something
     # like <timestamp, contents of top>
     #
-    producer.send ("utilizations", value=bytes (contents, 'ascii'))
+    producer.send ("utilizations", value=bytes (json.dumps(contents), 'ascii'))
     producer.flush ()   # try to empty the sending buffer
 
     # sleep a second

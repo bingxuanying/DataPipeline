@@ -21,7 +21,10 @@ config = configparser.ConfigParser()
 config.read('.env')
 
 # Get the service resource.
-dynamodb = boto3.client(
+session = boto3.Session(
+    region_name=config['CREDS']['AWS_REGION_NAME']
+)
+dynamodb = session.client(
     'dynamodb',
     aws_access_key_id = config['CREDS']['AWS_ACCESS_KEY'],
     aws_secret_access_key = config['CREDS']['AWS_SECRET_KEY']
@@ -51,19 +54,20 @@ for msg in consumer:
     # nor am I showing any code to connect to a backend database sink to
     # dump the incoming data. You will have to do that for the assignment.
     res = str(msg.value, 'ascii')
-    data = json.loads(res)
-    print (data)
+    print (res)
+    # data = json.loads(res)
+    # print (data)
 
-    # write value to dynamodb
-    dynamodb.put_item(
-        TableName='real-time_stock_price',
-        Item={
-            'id': { 'S': str(uuid.uuid4()) },
-            'stock_name':  { 'S': str(data['stock_name']) },
-            'stock_price':  { 'S': str(data['stock_price']) },
-            'timestamp':  { 'S': str(data['timestamp']) }
-        }
-    )
+    # # write value to dynamodb
+    # dynamodb.put_item(
+    #     TableName='real-time_stock_price',
+    #     Item={
+    #         'id': { 'S': str(uuid.uuid4()) },
+    #         'stock_name':  { 'S': str(data['stock_name']) },
+    #         'stock_price':  { 'S': str(data['stock_price']) },
+    #         'timestamp':  { 'S': str(data['timestamp']) }
+    #     }
+    # )
 
 # we are done. As such, we are not going to get here as the above loop
 # is a forever loop.
