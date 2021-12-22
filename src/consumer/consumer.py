@@ -11,27 +11,28 @@
 #    In this example, demonstrate Kafka streaming API to build a consumer.
 #
 
-import os   # need this for popen
-import time # for sleep
 from kafka import KafkaConsumer  # consumer of events
 import boto3
+import configparser
+import uuid
+import json
 
-client = boto3.client(
-    's3',
-    aws_access_key_id=ACCESS_KEY,
-    aws_secret_access_key=SECRET_KEY,
-    aws_session_token=SESSION_TOKEN
-)
+config = configparser.ConfigParser()
+config.read('.env')
 
 # Get the service resource.
-dynamodb = boto3.resource('dynamodb')
+dynamodb = boto3.client(
+    'dynamodb',
+    aws_access_key_id = config['CREDS']['AWS_ACCESS_KEY'],
+    aws_secret_access_key = config['CREDS']['AWS_SECRET_KEY']
+)
 
 # We can make this more sophisticated/elegant but for now it is just
 # hardcoded to the setup I have on my local VMs
 
 # acquire the consumer
 # (you will need to change this to your bootstrap server's IP addr)
-consumer = KafkaConsumer (bootstrap_servers="52.91.235.17:9092")
+consumer = KafkaConsumer (bootstrap_servers="3.82.231.138:9092")
 
 # subscribe to topic
 consumer.subscribe (topics=["utilizations"])
@@ -49,7 +50,20 @@ for msg in consumer:
     # Note that I am not showing code to obtain the incoming data as JSON
     # nor am I showing any code to connect to a backend database sink to
     # dump the incoming data. You will have to do that for the assignment.
-    print (str(msg.value, 'ascii'))
+    res = str(msg.value, 'ascii')
+    data = json.loads(res)
+    print (data)
+
+    # write value to dynamodb
+    dynamodb.put_item(
+        TableName='real-time_stock_price',
+        Item={
+            'id': { 'S': str(uuid.uuid4()) },
+            'stock_name':  { 'S': str(data['stock_name']) },
+            'stock_price':  { 'S': str(data['stock_price']) },
+            'timestamp':  { 'S': str(data['timestamp']) }
+        }
+    )
 
 # we are done. As such, we are not going to get here as the above loop
 # is a forever loop.

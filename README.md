@@ -28,7 +28,7 @@ tar -xvzf ~/kafka.tgz --strip 1
 
 ### Start Kafka
 
-nano config/server.properties
+nano ~/kafka/config/server.properties
 
 ~/kafka/bin/zookeeper-server-start.sh ~/kafka/config/zookeeper.properties
 
