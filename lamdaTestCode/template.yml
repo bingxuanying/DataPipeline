@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Resource:
+  randomGetLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      VpcConfig:
+        SecurityGroupIds:
+          - !FindInMap [StageMap, !Ref Stage, SecurityGroupId]
+        SubnetIds:
+          - !FindInMap [StageMap, !Ref Stage, PublicSubnet1]
+          - !FindInMap [StageMap, !Ref Stage, PublicSubnet2]
+      Handler: lambda.randomGet
+      FunctionName: randomGet
+      Role: !GetAtt [LambdaRole, Arn]
+      Events:
+        excelhandler:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayRestApi
+            Path: /api/get
+            Method: GET
+
+  randomGetPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+    - ApiGatewayRestApi
+    - randomGetLambda
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref randomGetLambda
+      Principal: apigateway.amazonaws.com
+
+  randomPostLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      VpcConfig:
+        SecurityGroupIds:
+          - !FindInMap [StageMap, !Ref Stage, SecurityGroupId]
+        SubnetIds:
+          - !FindInMap [StageMap, !Ref Stage, PublicSubnet1]
+          - !FindInMap [StageMap, !Ref Stage, PublicSubnet2]
+      Handler: lambda.randomPost
+      FunctionName: randomPost
+      Role: !GetAtt [LambdaRole, Arn]
+      Events:
+        excelhandler:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayRestApi
+            Path: /api/post
+            Method: POST
+
+  randomPostPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+    - ApiGatewayRestApi
+    - randomPostLambda
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref randomPostLambda
+      Principal: apigateway.amazonaws.com
