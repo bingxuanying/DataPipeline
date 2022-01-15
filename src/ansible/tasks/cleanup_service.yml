@@ -1,0 +1,35 @@
+- name: Cleaning...
+  debug:
+    msg: "Cleanup service {{ trg_service }} User {{ trg_user }} Path {{ trg_path }}"
+
+- name: Cleanup service {{ trg_service }} User {{ trg_user }} Path {{ trg_path }}
+  ansible.builtin.systemd:
+    state: stopped
+    name: "{{ trg_service }}"
+    enabled: false
+
+- name: Remove service files
+  file:
+    path: "{{ trg_path }}"
+    state: absent
+
+- name: Cleanup service systemd file
+  file:
+    path: "/etc/systemd/system/{{ trg_service }}.service"
+    state: absent
+
+- name: Remove user
+  ansible.builtin.user:
+    name: "{{ trg_user }}"
+    state: absent
+    remove: yes
+
+- name: Remove group
+  ansible.builtin.group:
+    name: "{{ trg_user }}"
+    state: absent
+
+- name: Remove home directory
+  file:
+    path: "/home/{{ trg_user }}"
+    state: absent

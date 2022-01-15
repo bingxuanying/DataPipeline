@@ -1,0 +1,22 @@
+- name: VANDY consumer to remote
+  hosts: t12-p3-vm02
+  gather_facts: no
+  
+  tasks:
+
+    - name: Open Ubuntu firwall
+      become: yes
+      ansible.builtin.shell: |
+        ufw allow 2181
+        ufw allow 9092
+        ufw allow 5984
+
+    - name: Copy consumer from local to remote
+      copy:
+        src: /ansible/project2_data/consumer.py
+        dest: consumer.py
+        owner: cc
+
+    - name: Start consumer on the {{inventory_hostname}}
+      shell: |
+        nohup python3 /home/cc/consumer.py 2>&1 >/home/cc/consumer.log &

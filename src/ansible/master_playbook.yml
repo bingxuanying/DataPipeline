@@ -1,0 +1,29 @@
+---
+############################################################
+#
+### Cloud Computing Project 2
+#
+#   1) Install local control hos using vagrant
+#   2) Using Ansible install/setup/start 2 Chameleon hosts
+#   3) Install zookeeper on chameleon host 1
+#   4) Install kafka cluster on chameleon vm01 and vm02
+#   5) Install our kafka consumer on chameleon host 2 (vm01)
+#   6) Run kafka producer from the VirtualBox control host
+#  
+############################################################
+- import_playbook: prepare_control_node_playbook.yml
+- import_playbook: create_chameleon_vm_playbook.yml
+# - import_playbook: prepare_common_soft_on_remotes_playbook.yml
+#   vars: 
+#     trg_host: t12-p3-vm01
+# - import_playbook: prepare_common_soft_on_remotes_playbook.yml
+#   vars:
+#     trg_host: t12-p3-vm02
+- import_playbook: set_internal_network_playbook.yml
+- import_playbook: install_docker.yml
+- import_playbook: install_k8s.yml
+# - import_playbook: install_zookeeper_playbook.yml
+# - import_playbook: install_kafka_playbook.yml
+# - import_playbook: vandy_consumer_playbook.yml
+...
+

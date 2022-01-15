@@ -1,0 +1,17 @@
+- name: Install public key for CC user
+  hosts: ccVMs
+  become: true
+  become_user: "cc"
+  tasks:
+  - name: make direcotry
+    file:
+      path: "/home/cc/.ssh"
+      state: directory
+  - name: create empty file
+    file:
+      path: "/home/cc/.ssh/vu_cs_5287"
+      state: touch
+  - name: put pubkey
+    lineinfile:
+      path: "/home/cc/.ssh/vu_cs_5287"
+      line: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQChqrl7LzMNbbpjThCAJgXnoltzHRS6uNksFGrUVXzLSRQEhTNKs7BRtg/nIIL2GD8PHrOsne7d7jUZGb2HQONCz0RoWK1FTIJZAVFSnMcRvOxIe9NHTGAWVTeTEJZ+LwmpstiFgum0wfwzja7Irv4QVq7WjcslOZ7331xOCHi9MrPtXr2DLvdRsZmHdJCBpt+Ko9O/1/f5jei5stg/sgu4L4yYO+fl8DCz89tn/+HtZ6HcMbhXts07Cv4LLIAmMqjevC9WquB5cCVEBXJzRZaM6J+0wLxvITCuKCIp47Us2Jdum1po8SdtPX14cWMNGj6koAw5mc6/RVdLBrataGDj"

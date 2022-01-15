@@ -1,0 +1,73 @@
+- name: Install Docker
+  hosts: ccVMs
+
+  become: yes
+
+  tasks:
+
+    - name: Copy docker_cluster
+      ansible.builtin.copy:
+        src: "/ansible/project2_data/docker_cluster.tgz"
+        dest: "/home/cc/docker_cluster.tgz"
+        mode: '0100'
+
+    - name: Install docker
+      ansible.builtin.shell: |
+        sudo apt update -y
+        sudo apt install ca-certificates curl gnupg lsb-release -y
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+          sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        sudo apt update -y
+        sudo apt install docker-ce docker-ce-cli containerd.io -y
+        #
+        # -- fix cgroup
+        #
+        sudo cat > /etc/docker/daemon.json <<EOF
+        {
+          "exec-opts": ["native.cgroupdriver=systemd"],
+          "insecure-registries" : ["t12-p3-vm01:5000"]
+        }
+        EOF
+
+        sudo systemctl daemon-reload
+        sudo systemctl restart docker
+
+        #
+        # --- private docker registry
+        #
+        sudo docker pull registry
+
+    - name: Create docker cluster images
+      ansible.builtin.shell: |
+        tar zxvf "/home/cc/docker_cluster.tgz"
+        cd DockerCluster_wKubernetes
+        cd Job
+        docker build -f dockerfile -t my-matrixinv .
+      when: ansible_hostname == "t12-p3-vm01"
+
+    - name: Start Docker registry server
+      ansible.builtin.shell: |
+        mkdir -p /etc/certs
+        cp /home/cc/certs/* /etc/certs/.
+        docker run -d -p 5000:5000 --restart=always --name registry \
+          -v /etc/certs:/etc/certs \
+          -e REGISTRY_HTTP_TLS_CERTIFICATE=/etc/certs/docker_registry.crt \
+          -e REGISTRY_HTTP_TLS_KEY=/etc/certs/docker_registry.key registry
+        sudo mkdir -p /usr/local/share/ca-certificates
+        sudo cp /etc/certs/docker_registry.crt /usr/local/share/ca-certificates/t12-p3-vm01.crt
+        mkdir -p /etc/docker/certs.d/t12-p3-vm01:5000
+        cp /etc/certs/docker_registry.crt /etc/docker/certs.d/t12-p3-vm01:5000/ca.crt
+        sudo update-ca-certificates
+        systemctl restart docker
+        #
+        # Push our images to the registry server
+        #
+        # for img in `sudo docker images | awk '$1 != "REPOSITORY" { print $1 }'`; do
+        #   docker push $img
+        # done
+        docker image tag my-matrixinv t12-p3-vm01:5000/my-matrixinv
+        docker push --all-tags t12-p3-vm01:5000/my-matrixinv
+        sudo ufw allow 5000
+      when: ansible_hostname == "t12-p3-vm01"

@@ -2,7 +2,19 @@
 
 A simple data analytics pipeline based on Vanderbilt CS5287
 
-## Instruction
+## High Level Diagram
+
+* Host machine, where Virtual Box and Vagrant installed
+* Control Host - Ubuntu server created by Vagrant with ansible_local
+* AWS EC2 VM 01 - Ubuntu Server with:
+  * Zookeeper (single host)
+  * Kafka (cluster #0)
+* AWS EC2 VM 02 - Ubuntu Server with
+  * Kafka (cluster #1)
+  * Kafka Consumer written in python.
+  * DynomaDB (Switch for CouchDB due to start error)
+
+## Assignment 1-2 Instruction
 
 ### Launch Instance
 
@@ -47,3 +59,59 @@ python3 -m pip install boto3
 python3 -m pip install yahoo_fin
 
 python3 CloudComputingCourse/ScaffoldingCode/Kafka_GettingStarted/consumer.py
+
+## Assignment 3 Instruction
+
+### How to provision
+
+```shell
+# To login to the Control Host
+ssh -F ssh-config vagrant
+
+# Inside control host
+cd src/ansible
+source CH-822922-openrc.sh
+
+# Deploy CouchDB and Kafka Consumer
+ansible-palybook -i inventory install_couchdb_palybook.yml
+ansible-playbook -i inventory vandy_consumer_playbook.yml
+
+# Start producer
+python3 src/producers/producer_amzn.py
+python3 src/producers/producer_appl.py
+
+# ssh to the AWS EC2 VM 2 from different terminal
+ssh -i ./vu_cs_5287.pem ec2-user@12.134.212.85
+
+# Start Consumer
+python3 src/consumer/consumer.py
+```
+
+Or:
+
+* Change Vagrant file to use cleanup_cchosts_playbook.yml playbook
+* Provision Vagrant:
+  
+```shell
+
+# From the host machine
+vagrant provision
+```
+
+To see data in the DynamoDB please add Credentials in Env file
+and read data from DynamoDB
+
+### How to cleanup
+
+From the control host (see above)
+
+```shell
+
+# To cleanup installed services (kafka, zookeeper, couchdb)
+ansible-palybook -i inventory cleanup_services_playbook.yml
+
+# To destroy Chameleon VMs
+ansible-playbook -i inventory cleanup_cchosts_playbook.yml
+```
+
+Milestone 1 has example of how it is possible to automate removal of the control host.

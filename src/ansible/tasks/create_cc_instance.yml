@@ -1,0 +1,19 @@
+- name: launch an instance
+  openstack.cloud.server:
+    name: "{{ target_host }}"
+    state: present
+    availability_zone: nova
+    image: 2067e3e4-057b-4fb9-a7f9-e8688cd5012b
+    key_name: t12_p2_key
+    flavor: m1.medium
+    timeout: 1200
+    security_groups: [default,SHARED-CLOUDCOMPUTING,SHARED_SSH_INGRESS]
+    network: CH-822922-net
+    auto_ip: yes
+    wait: yes
+  register: new_vm
+
+- name: Adding {{target_host}} data to NEW_VMS  
+  set_fact:
+    NEW_VMS: "{{ NEW_VMS | combine({ target_host : new_vm[ 'openstack' ][ 'accessIPv4' ] }) }}"
+  

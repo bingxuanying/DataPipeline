@@ -1,0 +1,8 @@
+- name: Prepare common software on remotes
+  hosts: "{{ trg_host }}"
+  become: yes
+  
+  tasks:
+
+    - name: Install common packages
+      include_tasks: tasks/prepare_remote.yml

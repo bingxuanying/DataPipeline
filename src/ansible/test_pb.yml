@@ -1,0 +1,51 @@
+- name: Test PB
+
+  # hosts: localhost
+  
+  # tasks:
+  #   - name: Read local /etc/localhost
+  #     command: awk 'BEGIN{ print "{" }/\tt12_p2/{ print "\""$2"\"" ":" "\""$1"\"" ",";  }END { print "}" }' /etc/hosts
+  #     register: ETC
+
+  #   - name: Print ETC
+  #     debug:
+  #       var: ETC
+  
+- hosts: ccVMs
+
+  vars:
+      broker_id: ""
+      kafka_conf: ""
+      VMS: {}
+
+  tasks:
+
+    # - name: Print ETC inside ccVMs
+    #   debug:
+    #     msg: "{{ hostvars['localhost']['ETC']['stdout_lines'] | join( ' ' ) | from_json }}" 
+    #   register: 
+    #     ETC_STRUCT
+
+    # - name: RESULT 
+    #   debug: 
+    #     var: ETC_STRUCT
+
+    # - name: Save our VM - IP data
+    #   set_fact:
+    #     cacheable: yes
+    #     VMS: "{{ VMS | combine({ item : ansible_facts[ 'all_ipv4_addresses' ][0] }) }}"
+    #   with_items:
+    #     - ansible_host
+
+    # - name: Collected data
+    #   debug:
+    #     var: ansible_facts[ 'VMS' ]
+
+      # - name: test var
+      #   copy:
+      #       dest: "{{ (ansible_host == 't12-p3-vm01') | ternary('server-0.properties', 'server-1.properties') }}"
+      #       content: |
+      #             broker.id={{ (ansible_host == 't12-p3-vm01') | ternary(0, 1) }}
+      #             advertised.listeners=PLAINTEXT://{{ansible_host}}
+      #             delete.topic.enable = true
+      #             log.dirs=/logs

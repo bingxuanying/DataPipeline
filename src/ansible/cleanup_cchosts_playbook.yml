@@ -1,0 +1,26 @@
+---
+- name: Cleanup Coud computing project 2
+  hosts: ccVMs
+  become: yes
+
+  tasks:
+
+    - debug:
+        var: ansible_facts[ 'machine_id' ]
+
+    - openstack.cloud.server_info:
+        availability_zone: nova
+        server: t12*
+        filters:
+          vm_state: active
+      register: result
+    - debug:
+        msg: "{{ result.openstack_servers }}"
+
+
+    - name: Remove instances
+      openstack.cloud.server:
+        name: "{{ ansible_facts[ 'machine_id' ] }}"
+        # name: "{{ inventory_hostname }}"
+        state: absent
+

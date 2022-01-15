@@ -1,0 +1,93 @@
+- name: Install Kafka
+  hosts: ccVMs
+
+  become: yes
+
+  vars:
+    kafka_root: /opt/kafka/kafka
+    kafka_conf: "{{ kafka_root }}/config/server.properties"
+
+  tasks:
+
+    - name: Open Ubuntu firwall
+      ansible.builtin.shell: |
+        ufw allow 2181
+        ufw allow 9092
+        ufw allow 5984
+
+    - name: Add Kafka user
+      ansible.builtin.user:
+        name: kafka
+        shell: /bin/bash
+
+    - name: Add users to sudoers
+      include_tasks: tasks/sudoers.yml
+      vars:
+        sudoers_users: ['kafka']
+
+    - name: Directory for Kafka server
+      file:
+        path: /opt/kafka
+        owner: kafka
+        state: directory
+
+    - name: Install kafka
+      ansible.builtin.unarchive:
+        owner: kafka
+        src: https://downloads.apache.org/kafka/2.6.2/kafka_2.13-2.6.2.tgz
+        dest: /opt/kafka
+        remote_src: yes
+
+    - name: Create symbolic link 
+      file:
+        src: /opt/kafka/kafka_2.13-2.6.2
+        dest: "{{ kafka_root }}"
+        state: link
+    
+    - name: Make sure kafka user is owner
+      file: dest=/opt/kafka owner=kafka group=wheel mode=u=rwX,g=rX,o=rX recurse=yes
+
+    - name: Configure kafka
+      copy:
+        dest: "{{ kafka_conf }}"
+        content: |
+          broker.id={{ (ansible_host == 't12-p3-vm01') | ternary(0, 1) }}
+          zookeeper.connect=t12-p3-vm01:2181
+          advertised.listeners=PLAINTEXT://{{ansible_host}}:9092
+          auto.create.topics.enable=true
+          delete.topic.enable = true
+          log.dirs=/tmp/kafka-logs
+
+    - name: Kafka system service file
+      copy: 
+        dest: /etc/systemd/system/kafka.service
+        content: |
+          [Unit]
+          Requires={{ (ansible_host == 't12-p3-vm01') | ternary('zookeeper.service', 'network.target') }}
+          After={{ (ansible_host == 't12-p3-vm01') | ternary('zookeeper.service', 'network.target') }}
+
+          [Service]
+          Type=simple
+          User=kafka
+          ExecStart=/bin/sh -c '{{kafka_root}}/bin/kafka-server-start.sh {{kafka_conf}} > {{kafka_root}}/kafka.log 2>&1'
+          ExecStop={{kafka_root}}/bin/kafka-server-stop.sh
+          Restart=on-abnormal
+
+          [Install]
+          WantedBy=multi-user.target          
+
+    - name: Just force systemd to reread configs (2.4 and above)
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Enable Kafka
+      ansible.builtin.systemd:
+        name: kafka
+        enabled: yes
+        masked: no
+
+    - name: Make sure a service unit is running
+      ansible.builtin.systemd:
+        state: started
+        name: kafka
+

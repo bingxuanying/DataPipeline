@@ -1,0 +1,12 @@
+- name: Update _etc_hosts on the target VM
+  become: yes
+  vars:
+    hosts_to_ips: {} # host_name to IP address
+
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    search_string: "{{ item.key }}"
+    line: "{{ item.value }}\t{{ item.key }}"
+    state: present
+    backup: yes
+  loop: "{{ hosts_to_ips | dict2items }}"

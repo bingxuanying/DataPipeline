@@ -1,0 +1,98 @@
+- name: Install Zookeeper
+  hosts: t12-p3-vm01
+
+  become: yes
+
+  vars:
+    zoo_root: /opt/zookeeper/zookeeper
+    zoo_conf: "{{ zoo_root }}/conf/zoo.cfg"
+    zoo_data: /data/zookeeper
+
+  tasks:
+
+    - name: Add Zookeeper user
+      ansible.builtin.user:
+        name: zookeeper
+        shell: /bin/bash
+
+    - name: Add users to sudoers
+      include_tasks: tasks/sudoers.yml
+      vars:
+        sudoers_users: ['zookeeper']
+
+    - name: Data directory
+      file:
+        path: "{{ zoo_data }}"
+        owner: zookeeper
+        state: directory
+
+    - name: Directory for Zookeeper server
+      file:
+        path: /opt/zookeeper
+        owner: zookeeper
+        state: directory
+
+    - name: Install zookeeper
+      ansible.builtin.unarchive:
+        owner: zookeeper
+        src: https://dlcdn.apache.org/zookeeper/zookeeper-3.6.3/apache-zookeeper-3.6.3-bin.tar.gz
+        dest: /opt/zookeeper
+        remote_src: yes
+
+    - name: Create symbolic link 
+      file:
+        src: /opt/zookeeper/apache-zookeeper-3.6.3-bin
+        dest: "{{ zoo_root }}"
+        state: link
+    
+    - name: Make sure zookeeper user is owner
+      file: dest=//opt/zookeeper owner=zookeeper group=wheel mode=u=rwX,g=rX,o=rX recurse=yes
+
+    - name: Configure zookeeper 4 standalone mode
+      copy:
+        dest: "{{ zoo_conf }}"
+        content: |
+          tickTime = 2000
+          dataDir = {{ zoo_data }}
+          clientPort = 2181
+          initLimit = 5
+          syncLimit = 2
+
+    - name: Zookeeper system service file
+      copy: 
+        dest: /etc/systemd/system/zookeeper.service
+        content: |
+          [Unit]
+          Description=Zookeeper Daemon
+          Documentation=http://zookeeper.apache.org
+          Requires=network.target
+          After=network.target
+
+          [Service]    
+          Type=forking
+          WorkingDirectory={{ zoo_root }}
+          User=zookeeper
+          Group=zookeeper
+          ExecStart={{ zoo_root }}/bin/zkServer.sh start {{ zoo_conf }}
+          ExecStop={{ zoo_root }}/bin/zkServer.sh stop {{ zoo_conf }}
+          ExecReload={{ zoo_root }}/bin/zkServer.sh restart {{ zoo_conf }}
+          TimeoutSec=30
+          Restart=on-failure
+
+          [Install]
+          WantedBy=default.target
+
+    - name: Just force systemd to reread configs (2.4 and above)
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Enable Zookeeper
+      ansible.builtin.systemd:
+        name: zookeeper
+        enabled: yes
+        masked: no
+
+    - name: Make sure a service unit is running
+      ansible.builtin.systemd:
+        state: started
+        name: zookeeper

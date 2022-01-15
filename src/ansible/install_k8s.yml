@@ -1,0 +1,59 @@
+- name: Install Kubernetes packages
+  hosts: ccVMs
+
+  become: yes
+
+  tasks:
+
+    - name: Install k8s programs
+      ansible.builtin.shell: |
+        curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+        sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+        sudo apt update -y
+        sudo apt install kubeadm kubelet kubectl -y
+        sudo systemctl daemon-reload
+        sudo systemctl restart docker
+        sudo systemctl restart kubelet
+        sudo systemctl status kubelet
+
+    - name: Milestone 1 script 
+      copy: 
+        dest: /home/cc/project3_milestone1_master.sh
+        content: |
+          #
+          # Master
+          #
+          ### sudo kubeadm init ## --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address=10.0.0.200
+          sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+
+          mkdir -p $HOME/.kube
+          sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+          sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+          kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+          ### On the worker
+          ### kubeadm join 10.60.5.4:6443 --token 50c30v.f6zjs2tpcqjqtcan --discovery-token-ca-cert-hash sha256:9a76bbc6770715d7208a3b173746f24537e8cede358eabae7bb6d56600273d33 
+
+          ### On the control plane
+          ###
+          kubectl get nodes
+
+          # Show how tainted master
+          kubectl describe node t12-p3-vm01
+
+          # Make master a worker  (node-role.kubernetes.io/master:NoSchedule)
+          kubectl taint node t12-p3-vm01 node-role.kubernetes.io/master:NoSchedule-
+
+          cd ~/DockerCluster_wKubernetes/Job
+          kubectl delete -f matinv-job_wCorrectRegistry.yaml 
+          kubectl create -f matinv-job_wCorrectRegistry.yaml
+
+          # kubectl create deployment nginx --image=nginx
+          # kubectl create service nodeport nginx --tcp=80:80
+
+          # kubectl get deployments nginx
+          # kubectl get svc
+
+          # kubectl create deployment matinv-server-svc --image=matinv-server-svc
+          # kubectl create service nodeport matinv-server-svc --tcp=5556:5556

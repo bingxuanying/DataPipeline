@@ -1,0 +1,81 @@
+---
+- name: Install CouchDB
+  hosts: t12-p3-vm02
+  
+  gather_facts: no
+  
+  become: yes
+
+  tasks:
+
+    - name: Update all packages to their latest version
+      apt:
+        name: "*"
+        state: latest
+        update_cache: yes
+
+    - name: Software properties common
+      apt:
+        name:
+          - software-properties-common
+          - curl
+          - apt-transport-https
+          - gnupg
+          - debconf
+          # - build-essential 
+          # - pkg-config 
+          # - erlang
+          # - libicu-dev 
+          # - libmozjs185-dev 
+          # - libcurl4-openssl-dev
+
+    - name: Add repo
+      shell: |
+        curl https://couchdb.apache.org/repo/keys.asc | gpg --dearmor | sudo tee /usr/share/keyrings/couchdb-archive-keyring.gpg >/dev/null 2>&1
+        source /etc/os-release
+        echo "deb [signed-by=/usr/share/keyrings/couchdb-archive-keyring.gpg] https://apache.jfrog.io/artifactory/couchdb-deb/ focal main" | sudo tee /etc/apt/sources.list.d/couchdb.list >/dev/null
+    
+    - name: Run the equivalent of "apt-get update" as a separate step
+      apt:
+        update_cache: yes
+
+    # - name: Install Couchdb
+    #   apt:
+    #     name: couchdb
+    #     state: present
+
+    - name: Install CouchDb with debconf
+      shell: |
+        COUCHDB_PASSWORD=password
+        echo "couchdb couchdb/mode select standalone
+        couchdb couchdb/mode seen true
+        couchdb couchdb/bindaddress string 127.0.0.1
+        couchdb couchdb/bindaddress seen true
+        couchdb couchdb/adminpass password ${COUCHDB_PASSWORD}
+        couchdb couchdb/adminpass seen true
+        couchdb couchdb/adminpass_again password ${COUCHDB_PASSWORD}
+        couchdb couchdb/adminpass_again seen true" | debconf-set-selections
+        DEBIAN_FRONTEND=noninteractive apt-get install -y --force-yes couchdb
+
+    - name: Allow connect to web console
+      ini_file:
+        path: /opt/couchdb/etc/local.ini
+        section: "{{ item.section }}"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+      with_items:
+        - { section: "chttpd", option: "bind_address", value: '0.0.0.0' }
+        - { section: "httpd", option: "bind_address", value: "0.0.0.0" }
+      tags:
+        - open_web_console
+
+    - name: Add users to sudoers
+      include_tasks: tasks/sudoers.yml
+      vars:
+        sudoers_users: ['couchdb']
+
+    - name: Restart coucdb
+      ansible.builtin.systemd:
+        state: restarted
+        daemon_reload: yes
+        name: couchdb

@@ -1,0 +1,32 @@
+---
+- name: Cleanup Coud computing project 2
+  hosts: ccVMs
+  become: yes
+
+  tasks:
+
+    - name: Cleanup Kafka
+      include_tasks: tasks/cleanup_service.yml
+      # tags: kafka_cleanup
+      vars:
+        trg_service: "kafka"
+        trg_user: "kafka"
+        trg_path: "/opt/kafka"
+
+    - name: Cleanup Zookeeper
+      # tags: zookeeper_cleanup
+      include_tasks: tasks/cleanup_service.yml
+      vars:
+        trg_service: zookeeper
+        trg_user: zookeeper
+        trg_path: /opt/zookeeper
+      when: "'t12-p3-vm01' in inventory_hostname"
+
+    - name: Cleanup CouchDB
+      include_tasks: tasks/cleanup_service.yml
+      # tags: couchdb_cleanup
+      vars:
+        trg_service: "couchdb"
+        trg_user: "couchdb"
+        trg_path: "/opt/couchdb"
+      when: "'t12-p3-vm02' in inventory_hostname"

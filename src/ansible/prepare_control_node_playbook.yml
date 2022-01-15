@@ -1,0 +1,32 @@
+---
+#
+# Playbook to update and install necessary programs on the control host
+#
+- name: Update ubuntu and install necessary packages
+  hosts: localhost
+
+  become: yes
+  tasks:
+    - name: Update cache 
+      apt:
+       update_cache: yes
+         
+    - name: Upgrade all packages on servers
+      apt: 
+        name: "*"
+        state: latest
+
+    - name: Install pip
+      apt:
+        name: "python3-pip"
+
+    - name: Install openstack and others python packages
+      pip:
+        name: 
+          - python-openstackclient
+          - kafka-python
+  
+    # - name: Copy clouds.yaml to /etc/ansible/openstack.yaml
+    #   ansible.builtin.copy:
+    #     src: /ansible/clouds.yaml
+    #     dest: /etc/ansible/openstack.yaml

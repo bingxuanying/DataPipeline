@@ -1,0 +1,29 @@
+- name: launch a compute instance
+  hosts: localhost
+        
+  collections:
+    - openstack.cloud
+
+  vars:
+    NEW_VMS: {}
+  tasks:
+
+    - name: Show all the hosts matching the pattern, ie all but the group www
+      include_tasks: tasks/create_cc_instance.yml
+      vars:
+        target_host: "{{ item }}"
+      loop: "{{ query('inventory_hostnames', 'ccVMs') }}"
+      # register: new_vms
+
+    - name: NEW VMS INFO
+      debug:
+        var: NEW_VMS
+
+    - name: Update etc/hosts with IPs for the target VMs
+      include_tasks: tasks/update_etc_hosts.yml
+      vars:
+        hosts_to_ips: "{{ NEW_VMS }}"
+
+    - name: Pause for 2 minute to allow new VMs to be ready for next steps
+      pause:
+        minutes: 2

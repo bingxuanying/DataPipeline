@@ -1,0 +1,45 @@
+- name: Config internal network between remote hosts
+  hosts: ccVMs
+  gather_facts: yes
+  vars:
+    VMS: {}
+
+  tasks:
+
+    - name: Prepare unified network info
+      set_fact:
+        VMS: "{{ VMS | combine({ inventory_hostname : ansible_facts[ 'all_ipv4_addresses' ][ 0 ] }) }}"
+
+    - name: VMS for host {{ inventory_hostname }}
+      debug:
+        var: VMS
+    
+- hosts: localhost
+  vars: 
+    VMS: {}
+
+  tasks:
+
+    - name: Unify VMS network data and store in hostvars['localhost']
+      # debug:
+      #   var: hostvars[ item ][ "VMS" ][ item ]
+      set_fact:
+        VMS: "{{ VMS | combine({ item : hostvars[ item ][ 'VMS' ][ item ] }) }}"
+      loop: "{{ query('inventory_hostnames', 'ccVMs') }}"
+
+    - name: Collected ccVMs network data
+      debug:
+        var: VMS
+
+- hosts: ccVMs
+  gather_facts: no
+
+  tasks:
+  
+    - name: Updating /etc/hosts on {{inventory_hostname}}
+      include_tasks: tasks/update_etc_hosts.yml
+      vars:
+        hosts_to_ips: "{{ hostvars[ 'localhost' ][ 'VMS' ] }}"
+
+    - name: Show updated /etc/hosts on {{inventory_hostname}}
+      command: cat /etc/hosts
